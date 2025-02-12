@@ -20,37 +20,57 @@ namespace HttpClientLoop
             var sslOptions = new SslClientAuthenticationOptions
             {
                 // Leave certs unvalidated for debugging
-                RemoteCertificateValidationCallback = delegate { return true; }
+                RemoteCertificateValidationCallback = delegate { return true; },
+                AllowTlsResume = true,
+                EnabledSslProtocols = System.Security.Authentication.SslProtocols.Tls13,
+                AllowRenegotiation = true
             };
-
-            System.Net.ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12;
             var handler = new SocketsHttpHandler()
             {
-                SslOptions = sslOptions
+                SslOptions = sslOptions,
+                KeepAlivePingDelay = TimeSpan.FromSeconds(1),
+                KeepAlivePingPolicy = HttpKeepAlivePingPolicy.WithActiveRequests,
+                KeepAlivePingTimeout = TimeSpan.FromSeconds(1)
             };
 
-            var client = new HttpClient(handler);
-            client.DefaultRequestHeaders.TryAddWithoutValidation("keep-alive", "close");
-            client.DefaultRequestVersion = new Version(2, 0);
-            client.DefaultVersionPolicy = HttpVersionPolicy.RequestVersionExact;
+            System.Net.ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls13;
+            
 
-            var i = 0;
+            // client.DefaultRequestHeaders.TryAddWithoutValidation("keep-alive", "close");
+            // client.DefaultRequestVersion = new Version(2, 0);
+            //client.DefaultVersionPolicy = HttpVersionPolicy.RequestVersionOrLower;
+
+            var s = 0;
 
             while(true)
             {
 
                 try
                 {
-                    var url = $"https://localhost:{port}/{i++}";
-                    var r = await client.GetStringAsync(url);
-                    Console.WriteLine($"{url} -> {r}");
+
+
+                    using var client = new HttpClient(handler, false);
+                    var url = $"https://localhost:{port}/{s++}";
+                    var msg = new HttpRequestMessage(HttpMethod.Get, url);
+                    msg.Headers.TryAddWithoutValidation("keep-alive", "close");
+                    using var r = await client.SendAsync(msg, HttpCompletionOption.ResponseHeadersRead);
+                    Console.WriteLine($"{url} -> {await r.Content.ReadAsStringAsync()}");
                 }
                 catch (Exception ex)
                 {
                     Console.WriteLine(ex.ToString());
                 }
 
-                await Task.Delay(1000);
+                Console.WriteLine("Running GC for 60 seconds");
+                for (int i = 0; i < 12; i++)
+                {
+                    Console.Write(".");
+                    var b = new byte[1024*1024*512];
+                    await Task.Delay(5000);
+                    System.GC.Collect();
+                    GC.WaitForPendingFinalizers();
+                }
+                Console.WriteLine("");
             }
 
         }

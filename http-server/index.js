@@ -16,6 +16,7 @@ const SNICallback = (name, cb) => {
 
 const httpServer = http2.createSecureServer({
     SNICallback,
+    allowHTTP1: true,
     keepAlive: false
 }, (req, res) => {
     try {
@@ -30,6 +31,9 @@ httpServer.listen(port, () => {
     console.log(`Server started on port ${port}`)
 });
 
+httpServer.on("secureConnection", (s) => {
+    console.log(`New TLS Socket ${s.servername} ${s.getSession().toString("hex")}`);
+})
 
 function createSelfSignedCert() {
 
