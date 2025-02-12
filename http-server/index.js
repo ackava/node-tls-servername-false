@@ -1,6 +1,7 @@
 import * as forge from "node-forge";
 import tls from "node:tls";
 import http2 from "node:http2";
+import { hash } from "node:crypto";
 
 const port = 8123;
 
@@ -32,7 +33,7 @@ httpServer.listen(port, () => {
 });
 
 httpServer.on("secureConnection", (s) => {
-    console.log(`New TLS Socket ${s.servername} ${s.getSession().toString("hex")}`);
+    console.log(`New TLS Socket ${s.servername} ${hash("md5",s.getSession()).toString("hex")}`);
 })
 
 function createSelfSignedCert() {
