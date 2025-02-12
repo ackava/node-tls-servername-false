@@ -16,10 +16,10 @@ const SNICallback = (name, cb) => {
 
 const httpServer = http2.createSecureServer({
     SNICallback,
-    allowHTTP1: true
+    keepAlive: false
 }, (req, res) => {
     try {
-        console.log(`Authority: ${req.authority ?? req.headers.host}`);
+        console.log(`${req.httpVersion} Authority: ${req.authority ?? req.headers.host}`);
         res.end("ok");
     } catch (error) {
         console.error(error);

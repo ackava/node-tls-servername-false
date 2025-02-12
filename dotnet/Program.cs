@@ -15,24 +15,24 @@ namespace HttpClientLoop
 
         private static async Task RunLoop(int port)
         {
+            AppContext.SetSwitch("System.Net.Http.SocketsHttpHandler.Http2Support", true);
+
             var sslOptions = new SslClientAuthenticationOptions
             {
                 // Leave certs unvalidated for debugging
-                RemoteCertificateValidationCallback = delegate { return true; },
-                AllowTlsResume = true,
-                AllowRenegotiation = true,
-                EnabledSslProtocols = System.Security.Authentication.SslProtocols.Tls12,
-                TargetHost = "localhost",
+                RemoteCertificateValidationCallback = delegate { return true; }
             };
 
             System.Net.ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12;
             var handler = new SocketsHttpHandler()
             {
-                SslOptions = sslOptions                
+                SslOptions = sslOptions
             };
 
-
             var client = new HttpClient(handler);
+            client.DefaultRequestHeaders.TryAddWithoutValidation("keep-alive", "close");
+            client.DefaultRequestVersion = new Version(2, 0);
+            client.DefaultVersionPolicy = HttpVersionPolicy.RequestVersionExact;
 
             var i = 0;
 
@@ -50,7 +50,7 @@ namespace HttpClientLoop
                     Console.WriteLine(ex.ToString());
                 }
 
-                await Task.Delay(60000);
+                await Task.Delay(1000);
             }
 
         }
