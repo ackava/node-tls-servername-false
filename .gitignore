@@ -128,3 +128,6 @@ dist
 .yarn/build-state.yml
 .yarn/install-state.gz
 .pnp.*
+dotnet/.vs/
+dotnet/bin/
+dotnet/obj/
