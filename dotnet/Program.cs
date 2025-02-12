@@ -1,5 +1,6 @@
 ﻿
 using System.Net;
+using System.Net.Security;
 using System.Security.Cryptography.X509Certificates;
 
 namespace HttpClientLoop
@@ -14,10 +15,20 @@ namespace HttpClientLoop
 
         private static async Task RunLoop(int port)
         {
+            var sslOptions = new SslClientAuthenticationOptions
+            {
+                // Leave certs unvalidated for debugging
+                RemoteCertificateValidationCallback = delegate { return true; },
+                AllowTlsResume = true,
+                AllowRenegotiation = true,
+                EnabledSslProtocols = System.Security.Authentication.SslProtocols.Tls12,
+                TargetHost = "localhost",
+            };
+
             System.Net.ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12;
             var handler = new SocketsHttpHandler()
             {
-                
+                SslOptions = sslOptions                
             };
 
 
@@ -39,7 +50,7 @@ namespace HttpClientLoop
                     Console.WriteLine(ex.ToString());
                 }
 
-                await Task.Delay(10000);
+                await Task.Delay(60000);
             }
 
         }
