@@ -34,11 +34,6 @@ namespace HttpClientLoop
             };
 
             System.Net.ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls13;
-            
-
-            // client.DefaultRequestHeaders.TryAddWithoutValidation("keep-alive", "close");
-            // client.DefaultRequestVersion = new Version(2, 0);
-            //client.DefaultVersionPolicy = HttpVersionPolicy.RequestVersionOrLower;
 
             var s = 0;
 
@@ -61,13 +56,13 @@ namespace HttpClientLoop
                     Console.WriteLine(ex.ToString());
                 }
 
-                Console.WriteLine("Running GC for 60 seconds");
-                for (int i = 0; i < 12; i++)
+                Console.WriteLine("Running GC for 2 minutes");
+                for (int j = 0; j < 61; j++)
                 {
                     Console.Write(".");
-                    var b = new byte[1024*1024*512];
-                    await Task.Delay(5000);
-                    System.GC.Collect();
+                    var b = new byte[1024 * 1024 * 512];
+                    await Task.Delay(1000);
+                    GC.Collect(GC.MaxGeneration, GCCollectionMode.Forced);
                     GC.WaitForPendingFinalizers();
                 }
                 Console.WriteLine("");
