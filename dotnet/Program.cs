@@ -22,7 +22,7 @@ namespace HttpClientLoop
                 // Leave certs unvalidated for debugging
                 RemoteCertificateValidationCallback = delegate { return true; },
                 // AllowTlsResume = true,
-                // EnabledSslProtocols = System.Security.Authentication.SslProtocols.Tls12,
+                EnabledSslProtocols = System.Security.Authentication.SslProtocols.Tls12,
                 // AllowRenegotiation = true
             };
             var handler = new SocketsHttpHandler()
@@ -34,30 +34,49 @@ namespace HttpClientLoop
             };
 
             System.Net.ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12;
-            var client = new HttpClient(handler);
 
             var s = 0;
 
-            while(true)
-            {
+            var list = new List<Task>();
 
-                try
-                {
+            for(int i=0;i<100;i++) {
+                var url = $"https://localhost:{port}/{s++}";
+                var client = new HttpClient(handler);
+                var msg = new HttpRequestMessage(HttpMethod.Get, url);
+                msg.Headers.TryAddWithoutValidation("keep-alive", "close");
+                Console.WriteLine($"{url} -> ");
+                using var r = await client.SendAsync(msg, HttpCompletionOption.ResponseHeadersRead);
+                Console.WriteLine(await r.Content.ReadAsStringAsync());
 
+                await Task.Delay(5000);
+                System.GC.Collect();
+                await Task.Delay(5000);
+                System.GC.Collect();
 
-                    var url = $"https://localhost:{port}/{s++}";
-                    var msg = new HttpRequestMessage(HttpMethod.Get, url);
-                    // msg.Headers.TryAddWithoutValidation("keep-alive", "close");
-                    Console.Write($"{url} -> ");
-                    using var r = await client.SendAsync(msg, HttpCompletionOption.ResponseHeadersRead);
-                    Console.WriteLine(await r.Content.ReadAsStringAsync());
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine(ex.ToString());
-                }
-                await Task.Delay(100);
             }
+
+            await Task.WhenAll(list);
+
+            // while(true)
+            // {
+
+            //     try
+            //     {
+
+
+            //         var url = $"https://localhost:{port}/{s++}";
+            //         var msg = new HttpRequestMessage(HttpMethod.Get, url);
+            //         // msg.Headers.TryAddWithoutValidation("keep-alive", "close");
+            //         Console.Write($"{url} -> ");
+            //         using var r = await client.SendAsync(msg, HttpCompletionOption.ResponseHeadersRead);
+            //         Console.WriteLine(await r.Content.ReadAsStringAsync());
+            //     }
+            //     catch (Exception ex)
+            //     {
+            //         Console.WriteLine(ex.ToString());
+            //     }
+            //     await Task.Delay(100);
+            // }
 
         }
     }
