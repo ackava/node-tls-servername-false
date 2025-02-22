@@ -1,25 +1,30 @@
 import * as forge from "node-forge";
 import tls from "node:tls";
-import http2 from "node:http2";
+import http from "node:http";
 import { hash } from "node:crypto";
 import { connect } from "node:net";
 
 const port = 8123;
 
+const { key, cert } = createSelfSignedCert();
+const context = tls.createSecureContext({ key, cert });
+
+const contextMap = new Map();
+
 const SNICallback = (name, cb) => {
     try {
         console.log(`SNICallback: ${name}`);
-        const { key, cert } = createSelfSignedCert();
-        cb(null, tls.createSecureContext({ key, cert }));
+        cb(null, context);
     } catch (error) {
         console.error(error);
     }
 };
 
-const httpServer = http2.createServer({
+const httpServer = http.createServer({
+
 }, (req, res) => {
     try {
-        console.log(`${req.httpVersion} Authority: ${req.authority ?? req.headers.host}, ServerName: ${req.socket.servername}`);
+        console.log(`${req.httpVersion} Authority: ${req.headers.host}, ServerName: ${req.socket.servername}`);
         res.end("ok");
     } catch (error) {
         console.error(error);
