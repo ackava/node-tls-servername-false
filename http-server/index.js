@@ -2,6 +2,7 @@ import * as forge from "node-forge";
 import tls from "node:tls";
 import http2 from "node:http2";
 import { hash } from "node:crypto";
+import { connect } from "node:net";
 
 const port = 8123;
 
@@ -15,26 +16,46 @@ const SNICallback = (name, cb) => {
     }
 };
 
-const httpServer = http2.createSecureServer({
-    SNICallback,
-    allowHTTP1: true,
-    keepAlive: false
+const httpServer = http2.createServer({
 }, (req, res) => {
     try {
-        console.log(`${req.httpVersion} Authority: ${req.authority ?? req.headers.host}`);
+        console.log(`${req.httpVersion} Authority: ${req.authority ?? req.headers.host}, ServerName: ${req.socket.servername}`);
         res.end("ok");
     } catch (error) {
         console.error(error);
     }
 });
 
-httpServer.listen(port, () => {
-    console.log(`Server started on port ${port}`)
+const tlsServer = tls.createServer({
+    SNICallback,
+    // pauseOnConnect: true,
+    ALPNProtocols: ["h2", "http/1.1"]
 });
 
-httpServer.on("secureConnection", (s) => {
-    console.log(`New TLS Socket ${s.servername} ${hash("md5",s.getSession()).toString("hex")}`);
-})
+tlsServer.on("secureConnection", (socket) => {
+    console.log(`Servername ${socket.servername}`);
+    // httpServer.emit("secureConnection", socket);
+    // socket.resume();
+
+    const httpForward = connect(10240, "0.0.0.0", () => {
+        socket.pipe(httpForward, true);
+        httpForward.pipe(socket, true);
+        socket.on("error", () => void 0);
+        httpForward.on("error", () => void 0);
+    });
+});
+
+tlsServer.listen(port, () => {
+    console.log(`TLS with HTTP Server started on ${port}`)
+});
+
+httpServer.listen(10240, () => {
+    console.log(`Http Server Ready`)
+});
+
+// httpServer.on("secureConnection", (s) => {
+//     console.log(`New TLS Socket ${s.servername} ${hash("md5",s.getSession()).toString("hex")}`);
+// })
 
 function createSelfSignedCert() {
 
